@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Word Counter — Dark Theme</title>
+  <meta name="description" content="Privacy-first word & character counter. Dark theme, responsive, and fast — runs fully in your browser." />
+  <meta property="og:title" content="Word Counter — Dark Theme" />
+  <meta property="og:description" content="Privacy-first word & character counter. Dark theme, responsive, and fast — runs fully in your browser." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!-- AdSense placeholder (replace ca-pub-XXX) -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXX" crossorigin="anonymous"></script>
+  <style>
+    :root{
+      --bg:#071021; --card:#0b1220; --muted:#9aa6b2; --accent:#3b82f6; --glass: rgba(255,255,255,0.03);
+      --card-2:#0f1724;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,var(--bg),#021021);color:#e6eef6;-webkit-font-smoothing:antialiased;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:transparent}
+    .brand{display:flex;align-items:center;gap:12px}
+    .brand img{width:40px;height:40px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    h1{font-size:1.05rem;margin:0;color:var(--accent)}
+    nav a{color:var(--muted);text-decoration:none;margin-left:12px;font-size:.95rem}
+    .container{max-width:980px;margin:18px auto;padding:14px}
+    .card{background:linear-gradient(180deg,var(--card),var(--card-2));padding:14px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
+    textarea{width:100%;min-height:260px;padding:14px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;font-size:1rem;resize:vertical}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#06203a;border:0}
+    .row{display:flex;gap:12px;margin-top:12px;align-items:center;flex-wrap:wrap}
+    label{color:var(--muted);font-size:.95rem}
+    input[type=number]{width:90px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit}
+    .ads{margin-top:14px;text-align:center}
+    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:.9rem}
+    @media (max-width:900px){.container{padding:12px}.card{padding:12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="favicon.svg" alt="WC"><h1>Word Counter</h1></div>
+    <nav>
+      <a href="index.html">Tool</a>
+      <a href="about.html">About</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="card" id="toolCard" aria-labelledby="toolTitle">
+      <h2 id="toolTitle" style="margin:0 0 8px 0">Online Word & Character Counter (Dark)</h2>
+      <p style="color:var(--muted);margin-top:0">Paste your text below — everything runs in your browser. Click <strong>Analyze</strong> to open the results page.</p>
+      <textarea id="textInput" placeholder="Type or paste text here..."></textarea>
+
+      <div class="row">
+        <label for="topN">Top words to show</label>
+        <input id="topN" type="number" min="1" max="50" value="6">
+        <button class="btn primary" id="analyzeBtn">Analyze →</button>
+        <button class="btn" id="clearBtn" title="Clear text">Clear</button>
+        <button class="btn" id="copyBtn" title="Copy text">Copy</button>
+        <button class="btn" id="downloadBtn" title="Download .txt">Download</button>
+      </div>
+
+      <div class="ads" aria-hidden="false" style="margin-top:12px">
+        <!-- AdSense placeholder - replace ca-pub-XXX -->
+        <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXX" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+    </section>
+    
+<footer class="card" style="margin-top:14px; text-align:center;">
+  <div style="color:white">
+    &copy; <span id="yearIdx"></span> Word Counter • 
+    <a <a href="mailto:zohshamjutt@gamil.com" style="color:white; text-decoration:none; font-weight:bold;">zohshamjutt@gamil.com</a>
+  </div>
+</footer>
+
+  </main>
+
+<script>
+// Basic helpers
+const textInput = document.getElementById('textInput');
+const topNInput = document.getElementById('topN');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const clearBtn = document.getElementById('clearBtn');
+const copyBtn = document.getElementById('copyBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+document.getElementById('yearIdx').textContent = new Date().getFullYear();
+
+// Restore previous text if present
+try {
+  const prev = sessionStorage.getItem('wc_text_v2');
+  if(prev) textInput.value = prev;
+  const prevN = sessionStorage.getItem('wc_topN_v2');
+  if(prevN) topNInput.value = prevN;
+} catch(e){ /* ignore */ }
+
+analyzeBtn.addEventListener('click', ()=>{
+  const txt = textInput.value || '';
+  const topn = topNInput.value || '6';
+  // Save to sessionStorage and go to results page
+  try {
+    sessionStorage.setItem('wc_text_v2', txt);
+    sessionStorage.setItem('wc_topN_v2', topn);
+    // mark timestamp
+    sessionStorage.setItem('wc_ts_v2', Date.now().toString());
+  } catch(e){ /* ignore storage errors */ }
+  location.href = 'results.html';
+});
+
+clearBtn.addEventListener('click', ()=>{ textInput.value=''; try{ sessionStorage.removeItem('wc_text_v2'); }catch(e){} });
+
+copyBtn.addEventListener('click', async ()=>{
+  const t = textInput.value;
+  if(!t){ alert('Nothing to copy'); return; }
+  try{ await navigator.clipboard.writeText(t); alert('Copied to clipboard'); }catch(e){ prompt('Copy failed — select and copy manually:', t); }
+});
+
+downloadBtn.addEventListener('click', ()=>{
+  const t = textInput.value;
+  if(!t){ alert('Nothing to download'); return; }
+  const blob = new Blob([t], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'text.txt'; document.body.appendChild(a); a.click(); a.remove();
+});
+
+// convenient keyboard shortcut: Ctrl/Cmd+Enter to analyze
+document.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey) && e.key === 'Enter'){ analyzeBtn.click(); } });
+</script>
+</body>
+</html>
