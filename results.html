@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Word Counter — Results</title>
+  <meta name="description" content="Analysis results: word count, characters, reading time, keyword density." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <style>
+
+.card {
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeIn 0.6s ease forwards;
+}
+.card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.container {
+  max-width: 800px;
+  margin: auto;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+    :root{--bg:#071021; --card:#0b1220; --muted:#9aa6b2; --accent:#3b82f6; --glass: rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;background:linear-gradient(180deg,var(--bg),#021021);color:#e6eef6;}
+    .container{max-width:980px;margin:18px auto;padding:14px}
+    .card{background:linear-gradient(180deg,var(--card),#071428);padding:14px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6);}
+    h1{color:var(--accent);margin:0 0 8px 0}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+    .stat{background:rgba(255,255,255,0.02);padding:10px;border-radius:8px}
+    .topwords{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+    .topwords li{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;display:flex;justify-content:space-between}
+    .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 12px;border-radius:8px;color:var(--muted);cursor:pointer}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),#60a5fa);color:#06203a;border:0}
+    pre{white-space:pre-wrap;max-height:260px;overflow:auto;padding:10px;background:rgba(0,0,0,0.25);border-radius:8px}
+    nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    nav a{color:var(--muted);text-decoration:none}
+    @media(max-width:600px){.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <nav>
+      <div><a href="index.html" style="color:var(--muted)">← Back to Tool</a></div>
+      <div style="color:var(--muted)">&copy; <span id="yearRes"></span> Word Counter</div>
+    </nav>
+
+    <section class="card" id="resultsCard" aria-labelledby="resultsTitle">
+      <h1 id="resultsTitle">Analysis Results</h1>
+      <div id="summary" class="stats" aria-live="polite">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="topwords" id="topwordsList" aria-live="polite"></div>
+
+      <div style="margin-top:12px">
+        <strong style="color:var(--muted)">Keyword density</strong>
+        <div id="density" style="color:var(--muted);margin-top:6px">—</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <strong style="color:var(--muted)">Preview</strong>
+        <pre id="preview"></pre>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="editBtn">Edit Text</button>
+        <button class="btn" id="copyResBtn">Copy Text</button>
+        <button class="btn" id="downloadResBtn">Download</button>
+        <button class="btn" id="clearStorageBtn">Clear Stored Text</button>
+      </div>
+    </section>
+  </main>
+
+<script>
+document.getElementById('yearRes').textContent = new Date().getFullYear();
+
+// Stopwords (short list) - extend as you like
+const stopwords = new Set(['the','is','in','and','to','a','of','it','for','on','that','this','with','as','are','was','but','be','by','or','an','at','from','i','you','they','we','he','she','his','her','my','our','so','if','not']);
+
+function analyzeText(text, topN){
+  text = text.replace(/\u00A0/g,' ');
+  const chars = text.length;
+  const charsNoSpaces = text.replace(/\s/g,'').length;
+  const wordsArr = (text.match(/[\p{L}\p{N}'-]+/gu) || []);
+  const wordCount = wordsArr.length;
+  const sentences = (text.match(/[^.!?]+[.!?]+/g) || []).length || (text.trim() ? 1 : 0);
+  const minutes = wordCount / 200;
+  const readTime = minutes < 1 ? Math.ceil(minutes*60) + ' sec' : Math.round(minutes) + ' min';
+
+  // frequency (ignores stopwords)
+  const freq = {};
+  for(const w of wordsArr){
+      const wl = w.toLowerCase();
+      if(stopwords.has(wl)) continue;
+      freq[wl] = (freq[wl] || 0) + 1;
+  }
+  const entries = Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+
+  // top N
+  const top = entries.slice(0, topN);
+
+  return {text, chars, charsNoSpaces, wordCount, sentences, readTime, top, entries};
+}
+
+function renderResults(data){
+  const summary = document.getElementById('summary');
+  summary.innerHTML = `
+    <div class="stat"><div style="color:var(--muted)">Words</div><div style="font-weight:700;font-size:1.1rem">${data.wordCount}</div></div>
+    <div class="stat"><div style="color:var(--muted)">Characters</div><div style="font-weight:700;font-size:1.1rem">${data.chars}</div></div>
+    <div class="stat"><div style="color:var(--muted)">Chars (no spaces)</div><div style="font-weight:700;font-size:1.1rem">${data.charsNoSpaces}</div></div>
+    <div class="stat"><div style="color:var(--muted)">Sentences</div><div style="font-weight:700;font-size:1.1rem">${data.sentences}</div></div>
+    <div class="stat"><div style="color:var(--muted)">Reading time</div><div style="font-weight:700;font-size:1.1rem">${data.readTime}</div></div>
+  `;
+
+  // Top words list
+  const topwordsList = document.getElementById('topwordsList');
+  topwordsList.innerHTML = '<strong style="color:var(--muted)">Top words</strong>';
+  const ul = document.createElement('div');
+  for(const [w,c] of data.top){
+    const li = document.createElement('div');
+    li.style.display='flex'; li.style.justifyContent='space-between'; li.style.padding='8px'; li.style.marginTop='6px'; li.style.borderRadius='8px'; li.style.background='rgba(255,255,255,0.02)';
+    li.innerHTML = `<div style="text-transform:none">${w}</div><div style="font-weight:700">${c}</div>`;
+    ul.appendChild(li);
+  }
+  topwordsList.appendChild(ul);
+
+  // density
+  const densityEl = document.getElementById('density');
+  const topDensity = data.top.slice(0,5).map(([w,c])=> `${w}: ${((c/Math.max(1,data.wordCount))*100).toFixed(2)}% (${c})`);
+  densityEl.textContent = topDensity.join(' • ') || '—';
+
+  // preview (truncate)
+  const preview = document.getElementById('preview');
+  preview.textContent = data.text.slice(0, 15000) || '—';
+}
+
+// Load from sessionStorage
+try {
+  const text = sessionStorage.getItem('wc_text_v2') || '';
+  const topN = parseInt(sessionStorage.getItem('wc_topN_v2') || '6', 10);
+  if(!text){
+    document.getElementById('resultsCard').innerHTML = '<p style="color:var(--muted)">No text found. Please go back to the <a href="index.html">tool page</a> and add your text.</p>';
+  } else {
+    const res = analyzeText(text, topN);
+    renderResults(res);
+
+    // Actions
+    document.getElementById('editBtn').addEventListener('click', ()=>{ location.href='index.html'; });
+    document.getElementById('copyResBtn').addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(text); alert('Copied to clipboard'); }catch(e){ prompt('Copy text:', text); }
+    });
+    document.getElementById('downloadResBtn').addEventListener('click', ()=>{
+      const blob = new Blob([text], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'text.txt'; document.body.appendChild(a); a.click(); a.remove();
+    });
+    document.getElementById('clearStorageBtn').addEventListener('click', ()=>{
+      if(confirm('Clear saved text from this browser?')){ sessionStorage.removeItem('wc_text_v2'); sessionStorage.removeItem('wc_topN_v2'); alert('Cleared.'); location.href='index.html'; }
+    });
+  }
+} catch(e){
+  document.getElementById('resultsCard').innerHTML = '<p style="color:var(--muted)">An error occurred while reading stored text. Please use the tool page.</p>';
+}
+</script>
+</body>
+</html>
+<footer>
+<div style="color:white; text-align:center;">
+  &copy; <span id="yearIdx"></span> Word Counter • 
+  <a href="mailto:zohshamjutt@gamil.com" style="color:white; text-decoration:none; font-weight:bold;">
+    zohshamjutt@gamil.com
+  </a>
+</div>
+<script>document.getElementById('yearIdx').textContent = new Date().getFullYear();</script>
+</footer>
